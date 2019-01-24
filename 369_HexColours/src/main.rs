@@ -10,21 +10,21 @@ struct RGB
 /// 
 fn rgb_to_rgbint(col: &RGB) -> u32
 {
-    return ((col.r as u32) << 16) | ((col.g as u32) << 8) | (col.b as u32);
+    ((col.r as u32) << 16) | ((col.g as u32) << 8) | (col.b as u32)
 }
 
 /// Convert int to a hex string in the format '#ffffff'
 ///
 fn int_to_hexstring(col: u32) -> String
 {
-    return format!("#{:06X}", col);
+    format!("#{:06X}", col)
 }
 
 /// Convert the individual RGB values to a hex string in the format '#ffffff'
 /// 
 fn rgb_to_hexstring(col: &RGB) -> String
 {
-    return int_to_hexstring(rgb_to_rgbint(col));
+    int_to_hexstring(rgb_to_rgbint(col))
 }
 
 /// Convert the hex character 0-F to decimal range 0-15
@@ -32,12 +32,12 @@ fn rgb_to_hexstring(col: &RGB) -> String
 /// 
 fn hex_table(x: u8) -> u8
 {
-    return match x
+    match x
     {
         48...57 => x - 48,
         65...70 => x - 55,
         _ => panic!("Invalid hex value")
-    };
+    }
 }
 
 /// Convert hex chars in the format '#ffffff' to RGB int
@@ -48,7 +48,7 @@ fn hexstring_to_rgb(hex: &&str) -> RGB
     let r = hex_table(chars[1]) * 16 + hex_table(chars[2]);
     let g = hex_table(chars[3]) * 16 + hex_table(chars[4]);
     let b = hex_table(chars[5]) * 16 + hex_table(chars[6]);
-    return RGB {r, g, b};
+    RGB {r, g, b}
 }
 
 /// Average the given RGB values together (NOTE: The puzzle says to round)
@@ -70,7 +70,7 @@ fn rgb_blend(cols: &[RGB]) -> RGB
     let av_g = sum_g as f32 / cols.len() as f32;
     let av_b = sum_b as f32 / cols.len() as f32;
 
-    return RGB {r: av_r as u8, g: av_g as u8, b: av_b as u8};
+    RGB {r: av_r as u8, g: av_g as u8, b: av_b as u8}
 }
 
 /// Puzzle is a Simple RGB to hex converter broken into 2 parts
