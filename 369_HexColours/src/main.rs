@@ -6,6 +6,42 @@ struct RGB
     b: u8
 }
 
+/// Puzzle is a Simple RGB to hex converter broken into 2 parts
+/// 1. Convert RGB to hex
+/// 2. Average a number of hex values together
+/// 
+fn main()
+{
+    let test_cases_convert: [RGB; 4] = 
+    [
+        RGB {r: 255, g: 99, b: 71}, //#FF6347
+        RGB {r: 184, g: 134, b: 11}, //#B8860B
+        RGB {r: 189, g: 183, b: 107}, //#BDB76B
+        RGB {r: 0, g: 0, b: 205}, //#0000CD
+    ];
+
+    let test_cases_blend: [Vec<&str>; 2] = 
+    [
+        vec!["#000000", "#778899"], //#3B444C
+        vec!["#E6E6FA", "#FF69B4", "#B0C4DE"], //#DCB1D9
+    ];
+
+    // Simple RGB to hex conversion
+    println!("--- Tests 1");
+    let hexs = test_cases_convert.iter().map(rgb_to_hexstring);
+    hexs.for_each(|h| println!("{:?}", h));
+
+    // Blend multiple hex colours together
+    println!("--- Tests 2");
+    for t in &test_cases_blend
+    {
+        let rgbs = t.iter().map(hexstring_to_rgb).collect::<Vec<RGB>>();
+        let average = rgb_blend(&rgbs);
+        let hex = rgb_to_hexstring(&average);
+        println!("{:?}", hex)
+    }
+}
+
 /// Convert the individual RGB values to a u32 int with R in the most significant bit
 /// 
 fn rgb_to_rgbint(col: &RGB) -> u32
@@ -71,40 +107,4 @@ fn rgb_blend(cols: &[RGB]) -> RGB
     let av_b = sum_b as f32 / cols.len() as f32;
 
     RGB {r: av_r as u8, g: av_g as u8, b: av_b as u8}
-}
-
-/// Puzzle is a Simple RGB to hex converter broken into 2 parts
-/// 1. Convert RGB to hex
-/// 2. Average a number of hex values together
-/// 
-fn main()
-{
-    let test_cases_convert: [RGB; 4] = 
-    [
-        RGB {r: 255, g: 99, b: 71}, //#FF6347
-        RGB {r: 184, g: 134, b: 11}, //#B8860B
-        RGB {r: 189, g: 183, b: 107}, //#BDB76B
-        RGB {r: 0, g: 0, b: 205}, //#0000CD
-    ];
-
-    let test_cases_blend: [Vec<&str>; 2] = 
-    [
-        vec!["#000000", "#778899"], //#3B444C
-        vec!["#E6E6FA", "#FF69B4", "#B0C4DE"], //#DCB1D9
-    ];
-
-    // Simple RGB to hex conversion
-    println!("--- Tests 1");
-    let hexs = test_cases_convert.iter().map(rgb_to_hexstring);
-    hexs.for_each(|h| println!("{:?}", h));
-
-    // Blend multiple hex colours together
-    println!("--- Tests 2");
-    for t in &test_cases_blend
-    {
-        let rgbs = t.iter().map(hexstring_to_rgb).collect::<Vec<RGB>>();
-        let average = rgb_blend(&rgbs);
-        let hex = rgb_to_hexstring(&average);
-        println!("{:?}", hex)
-    }
 }
