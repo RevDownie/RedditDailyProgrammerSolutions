@@ -11,6 +11,12 @@ struct StringBuffer
     const char* Buffer;
 };
 
+struct IndexResult
+{
+    int Num;
+    int* Indices;
+};
+
 /// Takes an array of strings and outputs a Morse coded version for each input
 /// Morse codes are generated in the "Smoosh" fashion (no spaces between letters)
 ///
@@ -196,6 +202,44 @@ const char* FindReoccuringString(int minNumOccurrences, const char** strings, in
     free(sortedStrings);
     return result;
 }
+
+/// Search throught the array of strings and find the N strings thats unencoded length is at least the min given and thats encoded strings have the same number of dots and dashes
+///
+IndexResult FindBalancedStrings(int maxToFind, int minLength, const char** unencodedStrings, const char** encodedStrings, int numStrings)
+{
+    int* resultIndices = (int*)malloc(sizeof(int) * maxToFind);
+    int numFound = 0;
+    int counts[2] = {0, 0};
+
+    for(int i=0; i<numStrings; ++i)
+    {
+        const char* string = encodedStrings[i];
+        while(*string != '\0')
+        {
+            // Dash is 45 in ascii so will map to 0, dot is 46 so will map to 1
+            int countIndex = *string - '-';
+            counts[countIndex]++;
+            ++string;
+        }
+
+        if(counts[0] == counts[1])
+        {
+            int len = strlen(unencodedStrings[i]);
+            if(len >= minLength)
+            {
+                resultIndices[numFound++] = i;
+                if(numFound == maxToFind)
+                    break;
+            }
+        }
+
+        counts[0] = counts[1] = 0;
+    }
+
+    IndexResult result;
+    result.Indices = resultIndices;
+    result.Num = numFound;
+    return result;
 }
 
 /// Really easy challenge of generating the "smooshed" Morse code for a given word. This one forms the basis
@@ -226,6 +270,17 @@ int main()
     duration = end - start;
     printf("Time Taken to find contiguous string %s(%s): %f\n", inputs.Indexer[contigIndex], encodedOutputs.Indexer[contigIndex], duration.count());
 
+    //BP 3: Call a word perfectly balanced if its code has the same number of dots as dashes. counterdemonstrations is one of two 21-letter words that's perfectly balanced. Find the other one.
+    start = std::chrono::system_clock::now();
+    IndexResult balancedIndices = FindBalancedStrings(2, 21, inputs.Indexer, encodedOutputs.Indexer, encodedOutputs.Num);
+    end = std::chrono::system_clock::now();
+    duration = end - start;
+    printf("Time Taken to find perfectly %d balanced strings: %f\n", balancedIndices.Num, duration.count());
+    for(int i=0; i<balancedIndices.Num; ++i)
+    {
+        printf("\tBalanced string %s(%s)\n", inputs.Indexer[balancedIndices.Indices[i]], encodedOutputs.Indexer[balancedIndices.Indices[i]]);
+    }
+
     // for(int i=0; i<encodedOutputs.Num; ++i)
     // {
     //     const char* morseText = encodedOutputs.Indexer[i];
@@ -237,6 +292,7 @@ int main()
     // free(inputs.Buffer);
     // free(encodedOutputs.Indexer);
     // free(encodedOutputs.Buffer);
+    // free(balancedIndices.Indices);
 
     return 0;
 }
