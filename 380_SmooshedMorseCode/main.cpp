@@ -24,11 +24,11 @@ StringBuffer MorseEncode(const char** inputStrings, int numInputs, const char** 
     // Then we can allocate a single buffer at that size to hold the characters contiguously
     // Rather than going through the conversion fully to find the actual size we will just allocate
     // for the max size
-    int totalOutputLen = numInputs; //Including null terminators
+    size_t totalOutputLen = numInputs; //Including null terminators
     for(int i=0; i<numInputs; ++i)
     {
         const char* input = inputStrings[i];
-        int maxEncodedLen = strlen(input) * maxAlphabetCharLen;
+        size_t maxEncodedLen = strlen(input) * maxAlphabetCharLen;
         totalOutputLen += maxEncodedLen;
     }
     char* buffer = (char*)malloc(totalOutputLen * sizeof(char));
@@ -119,6 +119,37 @@ StringBuffer ReadInputFile(const char* inputFileName)
     return result;
 }
 
+/// Search through the array of strings and find the index of the string that first meets the minimum contiguous number of the given character
+/// e.g. ...-----... contains 5 contiguous dashes so would meet the criteria "contigChar = -" "minNumContiguous = 5"
+///
+/// Functon returns -1 if no strings found that match the criteria
+///
+int FindIndexWithContiguousChar(char contigChar, int minNumContiguous, const char** strings, int numStrings)
+{
+    for(int i=0; i<numStrings; ++i)
+    {
+        int numContig = 0;
+        const char* string = strings[i];
+        while(*string != '\0')
+        {
+            if(*string == contigChar)
+            {
+                ++numContig;
+                if(numContig >= minNumContiguous)
+                    return i;
+            }
+            else
+            {
+                numContig = 0;
+            }
+
+            ++string;
+        }
+    }
+
+    return - 1;
+}
+
 /// Really easy challenge of outputting the "smooshed" Morse code for a given word. This one forms the basis
 /// of future harder challenges
 ///
@@ -127,19 +158,24 @@ int main()
     const char* morseAlphabet[26] = {".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."};
 
     auto start = std::chrono::system_clock::now();
-
     StringBuffer inputs = ReadInputFile("input.txt");
     StringBuffer encodedOutputs = MorseEncode(inputs.Indexer, inputs.Num, morseAlphabet, 4);
-
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> duration = end - start;
-    printf("Time Taken to encode %d strings: %f", inputs.Num, duration.count());
+    printf("Time Taken to encode %d strings: %f\n", inputs.Num, duration.count());
 
-    for(int i=0; i<encodedOutputs.Num; ++i)
-    {
-        const char* morseText = encodedOutputs.Indexer[i];
-        printf("Input: %s Output: %s\n", inputs.Indexer[i], morseText);
-    }
+
+    start = std::chrono::system_clock::now();
+    int contigIndex = FindIndexWithContiguousChar('-', 15, encodedOutputs.Indexer, encodedOutputs.Num);
+    end = std::chrono::system_clock::now();
+    duration = end - start;
+    printf("Time Taken to find contiguous string %s(%s): %f\n", inputs.Indexer[contigIndex], encodedOutputs.Indexer[contigIndex], duration.count());
+
+    // for(int i=0; i<encodedOutputs.Num; ++i)
+    // {
+    //     const char* morseText = encodedOutputs.Indexer[i];
+    //     printf("Input: %s Output: %s\n", inputs.Indexer[i], morseText);
+    // }
 
     // Just ending the program so don't bother freeing the memory
     // free(inputs.Indexer);
