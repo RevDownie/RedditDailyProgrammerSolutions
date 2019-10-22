@@ -213,6 +213,10 @@ IndexResult FindBalancedStrings(int maxToFind, int minLength, const char** unenc
 
     for(int i=0; i<numStrings; ++i)
     {
+        int len = strlen(unencodedStrings[i]);
+        if(len < minLength)
+            continue;
+
         const char* string = encodedStrings[i];
         while(*string != '\0')
         {
@@ -224,13 +228,9 @@ IndexResult FindBalancedStrings(int maxToFind, int minLength, const char** unenc
 
         if(counts[0] == counts[1])
         {
-            int len = strlen(unencodedStrings[i]);
-            if(len >= minLength)
-            {
-                resultIndices[numFound++] = i;
-                if(numFound == maxToFind)
-                    break;
-            }
+            resultIndices[numFound++] = i;
+            if(numFound == maxToFind)
+                break;
         }
 
         counts[0] = counts[1] = 0;
