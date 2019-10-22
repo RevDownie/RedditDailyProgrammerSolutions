@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <chrono>
+#include <unordered_map>
 
 struct StringBuffer
 {
@@ -150,7 +151,45 @@ int FindIndexWithContiguousChar(char contigChar, int minNumContiguous, const cha
     return - 1;
 }
 
-/// Really easy challenge of outputting the "smooshed" Morse code for a given word. This one forms the basis
+/// Search throught the array of strings and find the first string that occurs the given number of times
+///
+/// NOTE: I measured the peformance of this using a reserved unordered_map to store the counts of each (stopping when we reached the target) but
+/// this method of sorting the array was much quicker
+///
+const char* FindReoccuringString(int minNumOccurrences, const char** strings, int numStrings)
+{
+    struct
+    {
+        int operator()(const char* a, const char* b) const
+        {   
+            return strcmp(a, b) < 0;
+        }   
+    } SortComp;
+    std::sort(strings, strings + numStrings, SortComp);
+
+    const char* last = strings[0];
+    int count = 1;
+
+    for(int i=1; i<numStrings; ++i)
+    {
+        const char* current = strings[i];
+        if(strcmp(current, last) != 0)
+        {
+            last = current;
+            count = 1;
+        }
+        else
+        {
+            ++count;
+            if(count == minNumOccurrences)
+                return current;
+        }
+    }
+
+    return nullptr;
+}
+
+/// Really easy challenge of generating the "smooshed" Morse code for a given word. This one forms the basis
 /// of future harder challenges
 ///
 int main()
@@ -164,7 +203,14 @@ int main()
     std::chrono::duration<double> duration = end - start;
     printf("Time Taken to encode %d strings: %f\n", inputs.Num, duration.count());
 
+    //BP 1: The sequence -...-....-.--. is the code for four different words (needing, nervate, niding, tiling). Find the only sequence that's the code for 13 different words.
+    start = std::chrono::system_clock::now();
+    const char* reoccurringEncoding = FindReoccuringString(13, encodedOutputs.Indexer, encodedOutputs.Num);
+    end = std::chrono::system_clock::now();
+    duration = end - start;
+    printf("Time Taken to find reoccurring string %s: %f\n", reoccurringEncoding, duration.count());
 
+    //BP 2: autotomous encodes to .-..--------------..-..., which has 14 dashes in a row. Find the only word that has 15 dashes in a row.
     start = std::chrono::system_clock::now();
     int contigIndex = FindIndexWithContiguousChar('-', 15, encodedOutputs.Indexer, encodedOutputs.Num);
     end = std::chrono::system_clock::now();
