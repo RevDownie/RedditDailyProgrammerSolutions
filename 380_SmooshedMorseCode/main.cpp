@@ -165,14 +165,18 @@ const char* FindReoccuringString(int minNumOccurrences, const char** strings, in
             return strcmp(a, b) < 0;
         }   
     } SortComp;
-    std::sort(strings, strings + numStrings, SortComp);
 
-    const char* last = strings[0];
+    const char** sortedStrings = (const char**)malloc(sizeof(char*) * numStrings);
+    memcpy(sortedStrings, strings, sizeof(char*) * numStrings);
+    std::sort(sortedStrings, sortedStrings + numStrings, SortComp);
+
+    const char* result = nullptr;
+    const char* last = sortedStrings[0];
     int count = 1;
 
     for(int i=1; i<numStrings; ++i)
     {
-        const char* current = strings[i];
+        const char* current = sortedStrings[i];
         if(strcmp(current, last) != 0)
         {
             last = current;
@@ -182,11 +186,16 @@ const char* FindReoccuringString(int minNumOccurrences, const char** strings, in
         {
             ++count;
             if(count == minNumOccurrences)
-                return current;
+            {
+                result = current;
+                break;
+            }
         }
     }
 
-    return nullptr;
+    free(sortedStrings);
+    return result;
+}
 }
 
 /// Really easy challenge of generating the "smooshed" Morse code for a given word. This one forms the basis
