@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <chrono>
+#include <thread>
 
 struct StringBuffer
 {
@@ -22,51 +23,98 @@ struct IndexResult
 /// The strings are allocated in a contiguous buffer but are accessible through an array of strings which means we only need
 /// an allocation for the buffer and the index and similarly only 2 deallocations rather than an allocation per string
 ///
-StringBuffer MorseEncode(const char** inputStrings, int numInputs, const char** morseAlphabet, int maxAlphabetCharLen)
+/// The work is distributed over a number of worker threads
+///
+StringBuffer MorseEncode(const char** inputStrings, int numInputs, const char** morseAlphabet, int maxAlphabetCharLen) noexcept
 {
     const char** indexer = (const char**)malloc(numInputs * sizeof(const char*));
+
+    // Setup for the worker threads based on the number of supported cores
+    const unsigned int numWorkers = std::thread::hardware_concurrency();
+    const int numStringsPerWorker = numInputs/numWorkers;
+
+    std::thread* workers = (std::thread*)malloc(sizeof(std::thread) * numWorkers);
+    int* workerBufferOffsets = (int*)malloc(sizeof(int) * numWorkers);
+    workerBufferOffsets[0] = 0;
+    int workBuffIdx = 0;
 
     // Need to calculate how much memory is required to store all morse encoded strings in one chunk
     // Then we can allocate a single buffer at that size to hold the characters contiguously
     // Rather than going through the conversion fully to find the actual size we will just allocate
     // for the max size
     size_t totalOutputLen = numInputs; //Including null terminators
-    for(int i=0; i<numInputs; ++i)
+
+    int currentWorkloadCount = 0;
+    for(int i=0; i<numInputs; ++i, ++currentWorkloadCount)
     {
         const char* input = inputStrings[i];
         size_t maxEncodedLen = strlen(input) * maxAlphabetCharLen;
         totalOutputLen += maxEncodedLen;
+
+        if(currentWorkloadCount > numStringsPerWorker)
+        {
+            workerBufferOffsets[++workBuffIdx] = totalOutputLen + 1;
+            currentWorkloadCount = 0;
+        }
     }
     char* buffer = (char*)malloc(totalOutputLen * sizeof(char));
 
     // Now actually perform the conversion using the morseAlphabet as a lookup table to convert from ASCII to Morse
     // Each character is stored in the buffer but we use the indexer to point to the start of each string allowing
-    // us to iterate over the buffer per input
-    char* next = buffer;
-    for(int i=0; i<numInputs; ++i)
+    // us to iterate over the buffer per input.
+    // This is performed as a parallel job spread across a number of workers
+    struct EncodeJob
     {
-        indexer[i] = next; //Start of this output string
-
-        const char* input = inputStrings[i];
-        while(*input != '\0')
+        void operator()(const char** inputStrings, int numInputs, const char** morseAlphabet, char* bufferStart, const char** indexerStart) const noexcept
         {
-            int index = *input - 'a';
-            const char* morse = morseAlphabet[index];
-            while(*morse != '\0')
+            char* next = bufferStart;
+            for(int i=0; i<numInputs; ++i)
             {
-                *next = *morse;
-                ++morse;
+                *indexerStart = next; //Start of this output string
+                ++indexerStart;
+
+                const char* input = inputStrings[i];
+                while(*input != '\0')
+                {
+                    int index = *input - 'a';
+                    const char* morse = morseAlphabet[index];
+                    while(*morse != '\0')
+                    {
+                        *next = *morse;
+                        ++morse;
+                        ++next;
+                    }
+
+                    ++input;
+                }
+
+                *next = '\0';
                 ++next;
             }
-
-            ++input;
         }
+    };
 
-        *next = '\0';
-        ++next;
+    //Distribute the work evenly across the workers
+    int numStringsAssigned = 0;
+    for(int i=0; i<numWorkers-1; ++i)
+    {
+        workers[i] = std::thread(EncodeJob(), inputStrings + numStringsAssigned, numStringsPerWorker, morseAlphabet, buffer + workerBufferOffsets[i], indexer + numStringsAssigned);
+        numStringsAssigned += numStringsPerWorker;
     }
 
-    // Convert from a single block to an array of strings
+    //Handle remainder
+    int remainingWork = numInputs - numStringsAssigned;
+    workers[numWorkers-1] = std::thread(EncodeJob(), inputStrings + numStringsAssigned, remainingWork, morseAlphabet, buffer + workerBufferOffsets[numWorkers-1], indexer + numStringsAssigned);
+
+    //Wait for all the workers to finish
+    for(int i=0; i<numWorkers; ++i)
+    {
+        workers[i].join();
+    }
+
+    free(workers);
+    free(workerBufferOffsets);
+
     StringBuffer output;
     output.Indexer = indexer;
     output.Buffer = buffer;
@@ -79,7 +127,7 @@ StringBuffer MorseEncode(const char** inputStrings, int numInputs, const char** 
 /// The strings are allocated in a contiguous buffer but are accessible through an array of strings which means we only need
 /// an allocation for the buffer and the index and similarly only 2 deallocations rather than an allocation per string
 ///
-StringBuffer ReadInputFile(const char* inputFileName)
+StringBuffer ReadInputFile(const char* inputFileName) noexcept
 {
     FILE* fp = fopen(inputFileName, "r");
 
@@ -130,7 +178,7 @@ StringBuffer ReadInputFile(const char* inputFileName)
 ///
 /// Functon returns -1 if no strings found that match the criteria
 ///
-int FindIndexWithContiguousChar(char contigChar, int minNumContiguous, const char** strings, int numStrings)
+int FindIndexWithContiguousChar(char contigChar, int minNumContiguous, const char** strings, int numStrings) noexcept
 {
     for(int i=0; i<numStrings; ++i)
     {
@@ -161,7 +209,7 @@ int FindIndexWithContiguousChar(char contigChar, int minNumContiguous, const cha
 /// NOTE: I measured the peformance of this using a reserved unordered_map to store the counts of each (stopping when we reached the target) but
 /// this method of sorting the array was much quicker
 ///
-const char* FindReoccuringString(int minNumOccurrences, const char** strings, int numStrings)
+const char* FindReoccuringString(int minNumOccurrences, const char** strings, int numStrings) noexcept
 {
     struct
     {
@@ -204,7 +252,7 @@ const char* FindReoccuringString(int minNumOccurrences, const char** strings, in
 
 /// Search throught the array of strings and find the N strings thats unencoded length is at least the min given and thats encoded strings have the same number of dots and dashes
 ///
-IndexResult FindBalancedStrings(int maxToFind, int minLength, const char** unencodedStrings, const char** encodedStrings, int numStrings)
+IndexResult FindBalancedStrings(int maxToFind, int minLength, const char** unencodedStrings, const char** encodedStrings, int numStrings) noexcept
 {
     int* resultIndices = (int*)malloc(sizeof(int) * maxToFind);
     int numFound = 0;
@@ -244,7 +292,7 @@ IndexResult FindBalancedStrings(int maxToFind, int minLength, const char** unenc
 /// Really easy challenge of generating the "smooshed" Morse code for a given word. This one forms the basis
 /// of future harder challenges
 ///
-int main()
+int main() noexcept
 {
     const char* morseAlphabet[26] = {".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."};
 
