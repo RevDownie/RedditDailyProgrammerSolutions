@@ -33,7 +33,7 @@ StringBuffer MorseEncode(const char** inputStrings, int numInputs, const char** 
     const unsigned int numWorkers = std::thread::hardware_concurrency();
     const int numStringsPerWorker = numInputs/numWorkers;
 
-    std::thread* workers = (std::thread*)malloc(sizeof(std::thread) * numWorkers);
+    std::thread* workers = new std::thread[numWorkers];
     int* workerBufferOffsets = (int*)malloc(sizeof(int) * numWorkers);
     workerBufferOffsets[0] = 0;
     int workBuffIdx = 0;
@@ -112,7 +112,7 @@ StringBuffer MorseEncode(const char** inputStrings, int numInputs, const char** 
         workers[i].join();
     }
 
-    free(workers);
+    delete[] workers;
     free(workerBufferOffsets);
 
     StringBuffer output;
