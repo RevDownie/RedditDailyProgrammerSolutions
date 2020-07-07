@@ -6,7 +6,7 @@ const TestData = struct {
 
 /// Helper function to populate the array as Zig doesn't seem to support assigning directly in array
 ///
-fn create_test_data(a: u64, b: u64, expected_result: u64) TestData {
+fn createTestData(a: u64, b: u64, expected_result: u64) TestData {
     return TestData{ .year_a = a, .year_b = b, .expected_result = expected_result };
 }
 
@@ -19,15 +19,15 @@ fn create_test_data(a: u64, b: u64, expected_result: u64) TestData {
 ///
 pub fn main() !void {
     const tests = [_]TestData{
-        create_test_data(2016, 2017, 1),
-        create_test_data(2019, 2020, 0),
-        create_test_data(1900, 1901, 0),
-        create_test_data(2000, 2001, 1),
-        create_test_data(2800, 2801, 0),
-        create_test_data(123456, 123456, 0),
-        create_test_data(1234, 5678, 1077),
-        create_test_data(123456, 7891011, 1881475),
-        create_test_data(123456789101112, 1314151617181920, 288412747246240),
+        createTestData(2016, 2017, 1),
+        createTestData(2019, 2020, 0),
+        createTestData(1900, 1901, 0),
+        createTestData(2000, 2001, 1),
+        createTestData(2800, 2801, 0),
+        createTestData(123456, 123456, 0),
+        createTestData(1234, 5678, 1077),
+        createTestData(123456, 7891011, 1881475),
+        createTestData(123456789101112, 1314151617181920, 288412747246240),
     };
 
     const stdout = std.io.getStdOut().outStream();
@@ -46,12 +46,12 @@ pub fn main() !void {
 /// For instance, 2000 is an exception to the exception: the remainder when dividing 2000 by 900 is 200. So 2000 is a leap year in the Revised Julian Calendar
 ///
 fn leaps(year_a: u64, year_b: u64) u64 {
-    return total_leaps(year_b) - total_leaps(year_a);
+    return totalLeaps(year_b) - totalLeaps(year_a);
 }
 
 /// Calculate the number of leap years to the given year starting at zero
 ///
-inline fn total_leaps(year: u64) u64 {
+inline fn totalLeaps(year: u64) u64 {
     const y = year - 1;
     return y / 4 - y / 100 + (y - 200) / 900 + (y - 600) / 900;
 }

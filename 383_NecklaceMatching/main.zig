@@ -9,25 +9,25 @@ const TestContext = struct {
 };
 
 const tests = [_]TestData{
-    create_test_data("aab", "aa", false),
-    create_test_data("hello", "hello", true),
-    create_test_data("hello", "lohel", true),
-    create_test_data("hollo", "lohel", false),
-    create_test_data("glockenspiel", "spielglocken", true),
-    create_test_data("glockenspiel", "glockenspien", false),
-    create_test_data("keyboard", "eyboardk", true),
-    create_test_data("nicole", "icolen", true),
-    create_test_data("nicole", "lenico", true),
-    create_test_data("nicole", "coneli", false),
-    create_test_data("aabaaaaabaab", "aabaabaabaaa", true),
-    create_test_data("abc", "cba", false),
-    create_test_data("xxyyy", "xxxyy", false),
-    create_test_data("xyxxz", "xxyxz", false),
-    create_test_data("x", "x", true),
-    create_test_data("x", "xx", false),
-    create_test_data("x", "", false),
-    create_test_data("", "", true),
-    create_test_data("scott", "ttocs", false),
+    createTestData("aab", "aa", false),
+    createTestData("hello", "hello", true),
+    createTestData("hello", "lohel", true),
+    createTestData("hollo", "lohel", false),
+    createTestData("glockenspiel", "spielglocken", true),
+    createTestData("glockenspiel", "glockenspien", false),
+    createTestData("keyboard", "eyboardk", true),
+    createTestData("nicole", "icolen", true),
+    createTestData("nicole", "lenico", true),
+    createTestData("nicole", "coneli", false),
+    createTestData("aabaaaaabaab", "aabaabaabaaa", true),
+    createTestData("abc", "cba", false),
+    createTestData("xxyyy", "xxxyy", false),
+    createTestData("xyxxz", "xxyxz", false),
+    createTestData("x", "x", true),
+    createTestData("x", "xx", false),
+    createTestData("x", "", false),
+    createTestData("", "", true),
+    createTestData("scott", "ttocs", false),
 };
 
 const MAX_WORKING_MEM_LENGTH = 25;
@@ -36,7 +36,7 @@ const AllocationError = error{OutOfMemory};
 
 /// Helper function to populate the array as Zig doesn't seem to support assigning directly in array
 ///
-fn create_test_data(a: []const u8, b: []const u8, expected_result: bool) TestData {
+fn createTestData(a: []const u8, b: []const u8, expected_result: bool) TestData {
     return TestData{ .a = a, .b = b, .expected_result = expected_result };
 }
 
@@ -51,8 +51,8 @@ pub fn main() !void {
     var ctx1 = TestContext{ .data = tests[0..batch_size], .results = test_results[0..batch_size] };
     var ctx2 = TestContext{ .data = tests[batch_size..tests.len], .results = test_results[batch_size..tests.len] };
 
-    const thread1 = try std.Thread.spawn(@as(TestContext, ctx1), run_test_batch);
-    const thread2 = try std.Thread.spawn(@as(TestContext, ctx2), run_test_batch);
+    const thread1 = try std.Thread.spawn(@as(TestContext, ctx1), runTestBatch);
+    const thread2 = try std.Thread.spawn(@as(TestContext, ctx2), runTestBatch);
 
     thread1.wait();
     thread2.wait();
@@ -67,12 +67,12 @@ pub fn main() !void {
 
 /// Runs a subset of the tests (used for multithreading)
 ///
-fn run_test_batch(ctx: TestContext) void {
+fn runTestBatch(ctx: TestContext) void {
     var working_memory: [MAX_WORKING_MEM_LENGTH]u8 = undefined;
     var working_slice = working_memory[0..working_memory.len];
 
     for (ctx.data) |t, i| {
-        const result = is_rotation(t.a, t.b, working_slice) catch false;
+        const result = isRotation(t.a, t.b, working_slice) catch false;
         ctx.results[i] = result;
     }
 }
@@ -82,7 +82,7 @@ fn run_test_batch(ctx: TestContext) void {
 ///
 /// Zig prefers stack allocation so we need to pass in enough memory to expand 'a'
 ///
-fn is_rotation(a: []const u8, b: []const u8, working_memory: []u8) !bool {
+fn isRotation(a: []const u8, b: []const u8, working_memory: []u8) !bool {
     if (a.len * 2 >= working_memory.len)
         return AllocationError.OutOfMemory;
 
